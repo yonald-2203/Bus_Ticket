@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SwiftRoute — ER Diagram</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+  /* ── TOP NAV ── */
+  .topbar {
+    background: #c62828; color: white; padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px #0003;
+  }
+  .topbar h1 { font-size: 20px; font-weight: 700; }
+  .topbar span { font-size: 13px; opacity: .8; }
+
+  /* ── TAB NAV ── */
+  .tabs {
+    display: flex; gap: 4px; padding: 16px 28px 0;
+    background: white; border-bottom: 2px solid #e5e7eb;
+    position: sticky; top: 52px; z-index: 90;
+  }
+  .tab {
+    padding: 9px 20px; border-radius: 8px 8px 0 0; font-size: 13px;
+    font-weight: 600; cursor: pointer; border: none; background: #f3f4f6;
+    color: #6b7280; transition: all .2s;
+  }
+  .tab.active { background: #c62828; color: white; }
+  .tab:hover:not(.active) { background: #e5e7eb; color: #1a1a2e; }
+
+  /* ── SECTIONS ── */
+  .section { display: none; padding: 28px; }
+  .section.active { display: block; }
+
+  /* ── DIAGRAM ── */
+  .diagram-wrap {
+    background: white; border-radius: 16px; padding: 24px;
+    box-shadow: 0 2px 16px #0001; overflow-x: auto;
+  }
+  svg text { font-family: 'Segoe UI', sans-serif; }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 16px;
+    padding: 16px 20px; background: white; border-radius: 12px;
+    margin-bottom: 20px; box-shadow: 0 1px 6px #0001;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* ── EXPLANATION CARDS ── */
+  .cards-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+  }
+  .card {
+    background: white; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 2px 12px #0001; border: 1px solid #e5e7eb;
+  }
+  .card-head {
+    padding: 14px 18px; font-size: 15px; font-weight: 700;
+    display: flex; align-items: center; gap: 10px; color: white;
+  }
+  .card-body { padding: 16px 18px; font-size: 13px; line-height: 1.7; }
+  .field-row {
+    display: flex; align-items: flex-start; gap: 10px; padding: 6px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .field-row:last-child { border-bottom: none; }
+  .badge {
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
+    white-space: nowrap; flex-shrink: 0; margin-top: 2px;
+  }
+  .pk  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+  .fk  { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+  .uq  { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+  .idx { background: #ede9fe; color: #4c1d95; border: 1px solid #c4b5fd; }
+  .en  { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+  .nn  { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+  .field-name { font-weight: 600; color: #1a1a2e; min-width: 160px; font-size: 13px; }
+  .field-desc { color: #6b7280; font-size: 12px; }
+
+  /* ── RELATIONSHIPS ── */
+  .rel-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 8px #0001; }
+  .rel-table th { background: #1a1a2e; color: white; padding: 12px 16px; text-align: left; font-size: 13px; }
+  .rel-table td { padding: 11px 16px; border-bottom: 1px solid #f3f4f6; font-size: 13px; vertical-align: top; }
+  .rel-table tr:last-child td { border-bottom: none; }
+  .rel-table tr:hover td { background: #fef7f7; }
+  .rel-from { font-weight: 700; color: #c62828; }
+  .rel-to   { font-weight: 700; color: #1d3461; }
+  .rel-type { font-weight: 600; color: #065f46; font-size: 12px; }
+  .del-c  { color: #dc2626; font-weight: 600; }
+  .del-r  { color: #d97706; font-weight: 600; }
+
+  /* ── GLOSSARY ── */
+  .glossary { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .gitem { background: white; border-radius: 12px; padding: 16px 18px; box-shadow: 0 1px 6px #0001; }
+  .gterm { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .gdesc { font-size: 13px; color: #4b5563; line-height: 1.6; }
+  .gex   { font-size: 12px; color: #9ca3af; margin-top: 6px; font-style: italic; }
+  .section-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: #1a1a2e; }
+  .section-sub { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🚌 SwiftRoute — Entity Relationship Diagram</h1>
+  <span>11 Tables · 10 Relationships · Full Field Reference</span>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('diagram')">📊 ER Diagram</button>
+  <button class="tab" onclick="showTab('tables')">📋 Table Details</button>
+  <button class="tab" onclick="showTab('relationships')">🔗 Relationships</button>
+  <button class="tab" onclick="showTab('glossary')">📖 Glossary</button>
+</div>
+
+<!-- ═══════════════════ TAB 1: ER DIAGRAM ═══════════════════ -->
+<div id="tab-diagram" class="section active">
+  <div class="legend">
+    <span style="font-weight:700; font-size:13px; color:#374151; margin-right:4px;">Legend:</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#fcd34d"></span> PK — Primary Key</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#93c5fd"></span> FK — Foreign Key</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#6ee7b7"></span> UQ — Unique</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#c4b5fd"></span> IDX — Indexed</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#fca5a5"></span> ENUM — Enum type</span>
+    <span class="legend-item">
+      <svg width="40" height="12"><line x1="0" y1="6" x2="40" y2="6" stroke="#c62828" stroke-width="2"/><circle cx="40" cy="6" r="4" fill="#c62828"/></svg>
+      One-to-Many
+    </span>
+    <span class="legend-item">
+      <svg width="40" height="12"><line x1="0" y1="6" x2="40" y2="6" stroke="#1d3461" stroke-width="2" stroke-dasharray="4,3"/><circle cx="0" cy="6" r="4" fill="#1d3461"/><circle cx="40" cy="6" r="4" fill="#1d3461"/></svg>
+      One-to-One
+    </span>
+    <span class="legend-item">
+      <svg width="40" height="12"><line x1="0" y1="6" x2="40" y2="6" stroke="#065f46" stroke-width="2"/><polygon points="40,2 40,10 36,6" fill="#065f46"/></svg>
+      CASCADE delete
+    </span>
+    <span class="legend-item">
+      <svg width="40" height="12"><line x1="0" y1="6" x2="40" y2="6" stroke="#d97706" stroke-width="2" stroke-dasharray="2,2"/></svg>
+      RESTRICT delete
+    </span>
+  </div>
+
+  <div class="diagram-wrap">
+    <svg viewBox="0 0 1380 980" width="100%" style="min-width:900px">
+
+      <!-- ─── DEFS ─── -->
+      <defs>
+        <marker id="arr-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0,0 10,3.5 0,7" fill="#c62828"/>
+        </marker>
+        <marker id="arr-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0,0 10,3.5 0,7" fill="#1d3461"/>
+        </marker>
+        <marker id="arr-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0,0 10,3.5 0,7" fill="#065f46"/>
+        </marker>
+        <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0002"/></filter>
+      </defs>
+
+      <!-- ══════════════════════════════════════════
+           TABLE DRAWING MACRO (inline each table)
+      ══════════════════════════════════════════ -->
+
+      <!-- ─── USERS ─── x=30 y=30 w=240 -->
+      <g filter="url(#shadow)">
+        <rect x="30" y="30" width="240" height="218" rx="10" fill="white" stroke="#e5e7eb" stroke-width="1.5"/>
+        <rect x="30" y="30" width="240" height="36" rx="10" fill="#c62828"/>
+        <rect x="30" y="54" width="240" height="12" fill="#c62828"/>
+        <text x="55" y="53" fill="white" font-size="13" font-weight="700">👤 Users</text>
+      </g>
+      <!-- header row -->
+      <rect x="30" y="66" width="240" height="22" fill="#fff8f8"/>
+      <text x="38" y="81" fill="#92400e" font-size="10" font-weight="700">PK</text>
+      <text x="58" y="81" fill="#374151" font-size="11" font-weight="600">Id</text>
+      <text x="160" y="81" fill="#9ca3af" font-size="10">GUID · auto</text>
+
+      <rect x="30" y="88" width="240" height="22" fill="white"/>
+      <text x="38" y="103" fill="#065f46" font-size="10" font-weight="700">UQ</text>
+      <text x="58" y="103" fill="#374151" font-size="11" font-weight="600">Username</text>
+      <text x="160" y="103" fill="#9ca3af" font-size="10">string(100)</text>
+
+      <rect x="30" y="110" width="240" height="22" fill="#fff8f8"/>
+      <text x="38" y="125" fill="#065f46" font-size="10" font-weight="700">UQ</text>
+      <text x="58" y="125" fill="#374151" font-size="11" font-weight="600">Email</text>
+      <text x="160" y="125" fill="#9ca3af" font-size="10">string(256)</text>
+
+      <rect x="30" y="132" width="240" height="22" fill="white"/>
+      <text x="58" y="147" fill="#374151" font-size="11">FullName</text>
+      <text x="160" y="147" fill="#9ca3af" font-size="10">string</text>
+
+      <rect x="30" y="154" width="240" height="22" fill="#fff8f8"/>
+      <text x="38" y="169" fill="#991b1b" font-size="10" font-weight="700">ENUM</text>
+      <text x="68" y="169" fill="#374151" font-size="11">Role</text>
+      <text x="160" y="169" fill="#9ca3af" font-size="10">Admin|Operator|Customer</text>
+
+      <rect x="30" y="176" width="240" height="22" fill="white"/>
+      <text x="58" y="191" fill="#374151" font-size="11">PasswordHash</text>
+      <text x="160" y="191" fill="#9ca3af" font-size="10">string (PBKDF2)</text>
+
+      <rect x="30" y="198" width="240" height="22" fill="#fff8f8"/>
+      <text x="38" y="213" fill="#4c1d95" font-size="10" font-weight="700">IDX</text>
+      <text x="58" y="213" fill="#374151" font-size="11">CreatedAtUtc</text>
+      <text x="160" y="213" fill="#9ca3af" font-size="10">DateTime UTC</text>
+
+      <rect x="30" y="220" width="240" height="22" fill="white"/>
+      <text x="58" y="235" fill="#374151" font-size="11">RowVersion</text>
+      <text x="160" y="235" fill="#9ca3af" font-size="10">byte[] concurrency</text>
+
+      <!-- ─── BUS_OPERATORS ─── x=330 y=30 w=240 -->
+      <g filter="url(#shadow)">
+        <rect x="330" y="30" width="240" height="174" rx="10" fill="white" stroke="#e5e7eb" stroke-width="1.5"/>
+        <rect x="330" y="30" width="240" height="36" rx="10" fill="#7b1616"/>
+        <rect x="330" y="54" width="240" height="12" fill="#7b1616"/>
+        <text x="352" y="53" fill="white" font-size="13" font-weight="700">🏢 BusOperators</text>
+      </g>
+      <rect x="330" y="66" width="240" height="22" fill="#fff8f8"/>
+      <text x="338" y="81" fill="#92400e" font-size="10" font-weight="700">PK</text>
+      <text x="358" y="81" fill="#374151" font-size="11" font-weight="600">Id</text>
+      <text x="460" y="81" fill="#9ca3af" font-size="10">GUID · auto</text>
+
+      <rect x="330" y="88" width="240" height="22" fill="white"/>
+      <text x="338" y="103" fill="#1e40af" font-size="10" font-weight="700">FK</text>
+      <text x="358" y="103" fill="#374151" font-size="11" font-weight="600">UserId</text>
+      <text x="460" y="103" fill="#9ca3af" font-size="10">→ Users.Id</text>
+
+      <rect x="330" y="110" width="240" height="22" fill="#fff8f8"/>
+      <text x="358" y="125" fill="#374151" font-size="11">CompanyName</text>
+      <text x="460" y="125" fill="#9ca3af" font-size="10">string(200)</text>
+
+      <rect x="330" y="132" width="240" height="22" fill="white"/>
+      <text x="358" y="147" fill="#374151" font-size="11">SupportPhone</text>
+      <text x="460" y="147" fill="#9ca3af" font-size="10">string(30)</text>
+
+      <rect x="330" y="154" width="240" height="22" fill="#fff8f8"/>
+      <text x="358" y="169" fill="#374151" font-size="11">CreatedAtUtc</text>
+      <text x="460" y="169" fill="#9ca3af" font-size="10">DateTime UTC</text>
+
+      <rect x="330" y="176" width="240" height="22" fill="white"/>
+      <text x="358" y="191" fill="#374151" font-size="11">RowVersion</text>
+      <text x="460" y="191" fill="#9ca3af" font-size="10">byte[] concurrency</text>
+
+      <!-- ─── BUSES ─── x=630 y=30 w=240 -->
+      <g filter="url(#shadow)">
+        <rect x="630" y="30" width="240" height="218" rx="10" fill="white" stroke="#e5e7eb" stroke-width="1.5"/>
+        <rect x="630" y="30" width="240" height="36" rx="10" fill="#1d3461"/>
+        <rect x="630" y="54" width="240" height="12" fill="#1d3461"/>
+        <text x="652" y="53" fill="white" font-size="13" font-weight="700">🚌 Buses</text>
+      </g>
+      <rect x="630" y="66" width="240" height="22" fill="#f0f9ff"/>
+      <text x="638" y="81" fill="#92400e" font-size="10" font-weight="700">PK</text>
+      <text x="658" y="81" fill="#374151" font-size="11" font-weight="600">Id</text>
+      <text x="760" y="81" fill="#9ca3af" font-size="10">GUID · auto</text>
+
+      <rect x="630" y="88" width="240" height="22" fill="white"/>
+      <text x="638" y="103" fill="#1e40af" font-size="10" font-weight="700">FK</text>
+      <text x="658" y="103" fill="#374151" font-size="11" font-weight="600">OperatorId</text>
+      <text x="760" y="103" fill="#9ca3af" font-size="10">→ BusOperators.Id</text>
+
+      <rect x="630" y="110" width="240" height="22" fill="#f0f9ff"/>
+      <text x="638" y="125" fill="#065f46" font-size="10" font-weight="700">UQ</text>
+      <text x="658" y="125" fill="#374151" font-size="11" font-weight="600">Code</text>
+      <text x="760" y="125" fill="#9ca3af" font-size="10">unique per operator</text>
+
+      <rect x="630" y="132" width="240" height="22" fill="white"/>
+      <text x="658" y="147" fill="#374151" font-size="11">RegistrationNumber</text>
+      <text x="760" y="147" fill="#9ca3af" font-size="10">string(50)</text>
+
+      <rect x="630" y="154" width="240" height="22" fill="#f0f9ff"/>
+      <text x="638" y="169" fill="#991b1b" font-size="10" font-weight="700">ENUM</text>
+      <text x="668" y="169" fill="#374151" font-size="11">BusType</text>
+      <text x="760" y="169" fill="#9ca3af" font-size="10">Seater|Sleeper|AC…</text>
+
+      <rect x="630" y="176" width="240" height="22" fill="white"/>
+      <text x="638" y="191" fill="#991b1b" font-size="10" font-weight="700">ENUM</text>
+      <text x="668" y="191" fill="#374151" font-size="11">Status</text>
+      <text x="760" y="191" fill="#9ca3af" font-size="10">Available|Repair…</text>
+
+      <rect x="630" y="198" width="240" height="22" fill="#f0f9ff"/>
+      <text x="658" y="213" fill="#374151" font-size="11">TotalSeats</text>
+      <text x="760" y="213" fill="#9ca3af" font-size="10">int (default 40)</text>
+
+      <rect x="630" y="220" width="240" height="22" fill="white"/>
+      <text x="658" y="235" fill="#374151" font-size="11">RowVersion</text>
+      <text x="760" y="235" fill="#9ca3af" font-size="10">byte[] concurrency</text>
+
+      <!-- ─── STOPS ─── x=930 y=30 w=240 -->
+      <g filter="url(#shadow)">
+        <rect x="930" y="30" width="240" height="196" rx="10" fill="white" stroke="#e5e7eb" stroke-width="1.5"/>
+        <rect x="930" y="30" width="240" height="36" rx="10" fill="#065f46"/>
+        <rect x="930" y="54" width="240" height="12" fill="#065f46"/>
+        <text x="952" y="53" fill="white" font-size="13" font-weight="700">📍 Stops</text>
+      </g>
+      <rect x="930" y="66" width="240" height="22" fill="#f0fdf4"/>
+      <text x="938" y="81" fill="#92400e" font-size="10" font-weight="700">PK</text>
+      <text x="958" y="81" fill="#374151" font-size="11" font-weight="600">Id</text>
+      <text x="1060" y="81" fill="#9ca3af" font-size="10">GUID · auto</text>
+
+      <rect x="930" y="88" width="240" height="22" fill="white"/>
+      <text x="938" y="103" fill="#065f46" font-size="10" font-weight="700">UQ</text>
+      <text x="958" y="103" fill="#374151" font-size="11" font-weight="600">City</text>
+      <text x="1060" y="103" fill="#9ca3af" font-size="10">string(100)</text>
+
+      <rect x="930" y="110" width="240" height="22" fill="#f0fdf4"/>
+      <text x="938" y="125" fill="#065f46" font-size="10" font-weight="700">UQ</text>
+      <text x="958" y="125" fill="#374151" font-size="11" font-weight="600">Name</text>
+      <text x="1060" y="125" fill="#9ca3af" font-size="10">unique: City+Name</text>
+
+      <rect x="930" y="132" width="240" height="22" fill="white"/>
+      <text x="958" y="147" fill="#374151" font-size="11">Latitude</text>
+      <text x="1060" y="147" fill="#9ca3af" font-size="10">double? (optional)</text>
+
+      <rect x="930" y="154" width="240" height="22" fill="#f0fdf4"/>
+      <text x="958" y="169" fill="#374151" font-size="11">Longitude</text>
+      <text x="1060" y="169" fill="#9ca3af" font-size="10">double? (optional)</text>
+
+      <rect x="930" y="176" width="240" height="22" fill="white"/>
+      <text x="958" y="191" fill="#374151" font-size="11">CreatedAtUtc</text>
+      <text x="1060" y="191" fill="#9ca3af" font-size="10">DateTime UTC</text>
+
+      <rect x="930" y="198" width="240" height="22" fill="#f0fdf4"/>
+      <text x="958" y="213" fill="#374151" font-size="11">RowVersion</text>
+      <text x="1060" y="213" fill="#9ca3af" font-size="10">byte[] concurrency</text>
+
+      <!-- ─── BUS_ROUTES ─── x=30 y=320 w=240 -->
+      <g filter="url(#shadow)">
+        <rect x="30" y="340" width="240" height="152" rx="10" fill="white" stroke="#e5e7eb" stroke-width="1.5"/>
+        <rect x="30" y="340" width="240" height="36" rx="10" fill="#c9882a"/>
+        <rect x="30" y="364" width="240" height="12" fill="#c9882a"/>
+        <text x="52" y="363" fill="white" font-size="13" font-weight="700">🗺️ BusRoutes</text>
+      </g>
+      <rect x="30" y="376" width="240" height="22" fill="#fffbeb"/>
+      <text x="38" y="391" fill="#92400e" font-size="10" font-weight="700">PK</text>
+      <text x="58" y="391" fill="#374151" font-size="11" font-weight="600">Id</text>
+      <text x="160" y="391" fill="#9ca3af" font-size="10">GUID · auto</text>
+
+      <rect x="30" y="398" width="240" height="22" fill="white"/>
+      <text x="38" y="413" fill="#1e40af" font-size="10" font-weight="700">FK</text>
+      <text x="58" y="413" fill="#374151" font-size="11" font-weight="600">OperatorId</text>
+      <text x="160" y="413" fill="#9ca3af" font-size="10">→ BusOperators.Id</text>
+
+      <rect x="30" y="420" width="240" height="22" fill="#fffbeb"/>
+      <text x="38" y="435" fill="#065f46" font-size="10" font-weight="700">UQ</text>
+      <text x="58" y="435" fill="#374151" font-size="11" font-weight="600">RouteCode</text>
+      <text x="160" y="435" fill="#9ca3af" font-size="10">unique per operator</text>
+
+      <rect x="30" y="442" width="240" height="22" fill="white"/>
+      <text x="58" y="457" fill="#374151" font-size="11">CreatedAtUtc</text>
+      <text x="160" y="457" fill="#9ca3af" font-size="10">DateTime UTC</text>
+
+      <rect x="30" y="464" width="240" height="22" fill="#fffbeb"/>
+      <text x="58" y="479" fill="#374151" font-size="11">RowVersion</text>
+      <text x="160" y="479" fill="#9ca3af" font-size="10">byte[] concurrency</text>
+
+      <!-- ─── ROUTE_STOPS (junction) ─── x=330 y=320 w=240 -->
+      <g filter="url(#shadow)">
+        <rect x="330" y="340" width="240" height="196" rx="10" fill="white" stroke="#c4b5fd" stroke-width="2"/>
+        <rect x="330" y="340" width="240" height="36" rx="10" fill="#4c1d95"/>
+        <rect x="330" y="364" width="240" height="12" fill="#4c1d95"/>
+        <text x="348" y="363" fill="white" font-size="13" font-weight="700">🔀 RouteStops</text>
+        <text x="480" y="363" fill="#c4b5fd" font-size="10">(junction)</text>
+      </g>
+      <rect x="330" y="376" width="240" height="22" fill="#faf5ff"/>
+      <text x="338" y="391" fill="#92400e" font-size="10" font-weight="700">PK</text>
+      <text x="358" y="391" fill="#374151" font-size="11" font-weight="600">Id</text>
+      <text x="460" y="391" fill="#9ca3af" font-size="10">GUID · auto</text>
+
+      <rect x="330" y="398" width="240" height="22" fill="white"/>
+      <text x="338" y="413" fill="#1e40af" font-size="10" font-weight="700">FK</text>
+      <text x="358" y="413" fill="#374151" font-size="11" font-weight="600">RouteId</text>
+      <text x="460" y="413" fill="#9ca3af" font-size="10">→ BusRoutes.Id</text>
+
+      <rect x="330" y="420" width="240" height="22" fill="#faf5ff"/>
+      <text x="338" y="435" fill="#1e40af" font-size="10" font-weight="700">FK</text>
+      <text x="358" y="435" fill="#374151" font-size="11" font-weight="600">StopId</text>
+      <text x="460" y="435" fill="#9ca3af" font-size="10">→ Stops.Id (RESTRICT)</text>
+
+      <rect x="330" y="442" width="240" height="22" fill="white"/>
+      <text x="338" y="457" fill="#065f46" font-size="10" font-weight="700">UQ</text>
+      <text x="358" y="457" fill="#374151" font-size="11" font-weight="600">Order</text>
+      <text x="460" y="457" fill="#9ca3af" font-size="10">int · unique per route</text>
+
+      <rect x="330" y="464" width="240" height="22" fill="#faf5ff"/>
+      <text x="358" y="479" fill="#374151" font-size="11">ArrivalOffsetMin</text>
+      <text x="460" y="479" fill="#9ca3af" font-size="10">int? minutes</text>
+
+      <rect x="330" y="486" width="240" height="22" fill="white"/>
+      <text x="358" y="501" fill="#374151" font-size="11">DepartureOffsetMin</text>
+      <text x="460" y="501" fill="#9ca3af" font-size="10">int? minutes</text>
+
+      <rect x="330" y="508" width="240" height="22" fill="#faf5ff"/>
+      <text x="358" y="523" fill="#374151" font-size="11">RowVersion</text>
+      <text x="460" y="523" fill="#9ca3af" font-size="10">byte[] concurrency</text>
+
+      <!-- ─── BUS_SCHEDULES ─── x=630 y=320 w=240 -->
+      <g filter="url(#shadow)">
+        <rect x="630" y="340" width="240" height="218" rx="10" fill="white" stroke="#e5e7eb" stroke-width="1.5"/>
+        <rect x="630" y="340" width="240" height="36" rx="10" fill="#c62828"/>
+        <rect x="630" y="364" width="240" height="12" fill="#c62828"/>
+        <text x="648" y="363" fill="white" font-size="13" font-weight="700">🗓️ BusSchedules</text>
+      </g>
+      <rect x="630" y="376" width="240" height="22" fill="#fff8f8"/>
+      <text x="638" y="391" fill="#92400e" font-size="10" font-weight="700">PK</text>
+      <text x="658" y="391" fill="#374151" font-size="11" font-weight="600">Id</text>
+      <text x="760" y="391" fill="#9ca3af" font-size="10">GUID · auto</text>
+
+      <rect x="630" y="398" width="240" height="22" fill="white"/>
+      <text x="638" y="413" fill="#1e40af" font-size="10" font-weight="700">FK</text>
+      <text x="658" y="413" fill="#374151" font-size="11" font-weight="600">BusId</text>
+      <text x="760" y="413" fill="#9ca3af" font-size="10">→ Buses.Id</text>
+
+      <rect x="630" y="420" width="240" height="22" fill="#fff8f8"/>
+      <text x="638" y="435" fill="#1e40af" font-size="10" font-weight="700">FK</text>
+      <text x="658" y="435" fill="#374151" font-size="11" font-weight="600">RouteId</text>
+      <text x="760" y="435" fill="#9ca3af" font-size="10">→ BusRoutes.Id (RESTRICT)</text>
+
+      <rect x="630" y="442" width="240" height="22" fill="white"/>
+      <text x="638" y="457" fill="#065f46" font-size="10" font-weight="700">UQ</text>
+      <text x="658" y="457" fill="#374151" font-size="11" font-weight="600">DepartureUtc</text>
+      <text x="760" y="457" fill="#9ca3af" font-size="10">unique per bus</text>
+
+      <rect x="630" y="464" width="240" height="22" fill="#fff8f8"/>
+      <text x="658" y="479" fill="#374151" font-size="11">BasePrice</text>
+      <text x="760" y="479" fill="#9ca3af" font-size="10">decimal(10,2)</text>
+
+      <rect x="630" y="486" width="240" height="22" fill="white"/>
+      <text x="658" y="501" fill="#374151" font-size="11">IsCancelledByOperator</text>
+      <text x="760" y="501" fill="#9ca3af" font-size="10">bool (default false)</text>
+
+      <rect x="630" y="508" width="240" height="22" fill="#fff8f8"/>
+      <text x="658" y="523" fill="#374151" font-size="11">CancelReason</text>
+      <text x="760" y="523" fill="#9ca3af" font-size="10">string? nullable</text>
+
+      <rect x="630" y="530" width="240" height="22" fill="white"/>
+      <text x="658" y="545" fill="#374151" font-size="11">RowVersion</text>
+      <text x="760" y="545" fill="#9ca3af" font-size="10">byte[] concurrency</text>
+
+      <!-- ─── BOOKINGS ─── x=30 y=620 w=240 -->
+      <g filter="url(#shadow)">
+        <rect x="30" y="640" width="240" height="196" rx="10" fill="white" stroke="#e5e7eb" stroke-width="1.5"/>
+        <rect x="30" y="640" width="240" height="36" rx="10" fill="#1d3461"/>
+        <rect x="30" y="664" width="240" height="12" fill="#1d3461"/>
+        <text x="52" y="663" fill="white" font-size="13" font-weight="700">🎫 Bookings</text>
+      </g>
+      <rect x="30" y="676" width="240" height="22" fill="#f0f9ff"/>
+      <text x="38" y="691" fill="#92400e" font-size="10" font-weight="700">PK</text>
+      <text x="58" y="691" fill="#374151" font-size="11" font-weight="600">Id</text>
+      <text x="160" y="691" fill="#9ca3af" font-size="10">GUID · auto</text>
+
+      <rect x="30" y="698" width="240" height="22" fill="white"/>
+      <text x="38" y="713" fill="#1e40af" font-size="10" font-weight="700">FK</text>
+      <text x="58" y="713" fill="#374151" font-size="11" font-weight="600">UserId</text>
+      <text x="160" y="713" fill="#9ca3af" font-size="10">→ Users.Id (RESTRICT)</text>
+
+      <rect x="30" y="720" width="240" height="22" fill="#f0f9ff"/>
+      <text x="38" y="735" fill="#1e40af" font-size="10" font-weight="700">FK</text>
+      <text x="58" y="735" fill="#374151" font-size="11" font-weight="600">ScheduleId</text>
+      <text x="160" y="735" fill="#9ca3af" font-size="10">→ BusSchedules.Id</text>
+
+      <rect x="30" y="742" width="240" height="22" fill="white"/>
+      <text x="38" y="757" fill="#991b1b" font-size="10" font-weight="700">ENUM</text>
+      <text x="68" y="757" fill="#374151" font-size="11" font-weight="600">Status</text>
+      <text x="160" y="757" fill="#9ca3af" font-size="10">Pending|Confirmed…</text>
+
+      <rect x="30" y="764" width="240" height="22" fill="#f0f9ff"/>
+      <text x="58" y="779" fill="#374151" font-size="11">TotalAmount</text>
+      <text x="160" y="779" fill="#9ca3af" font-size="10">decimal(10,2)</text>
+
+      <rect x="30" y="786" width="240" height="22" fill="white"/>
+      <text x="58" y="801" fill="#374151" font-size="11">CreatedAtUtc</text>
+      <text x="160" y="801" fill="#9ca3af" font-size="10">DateTime UTC</text>
+
+      <rect x="30" y="808" width="240" height="22" fill="#f0f9ff"/>
+      <text x="58" y="823" fill="#374151" font-size="11">RowVersion</text>
+      <text x="160" y="823" fill="#9ca3af" font-size="10">byte[] concurrency</text>
+
+      <!-- ─── BOOKING_PASSENGERS ─── x=330 y=620 w=240 -->
+      <g filter="url(#shadow)">
+        <rect x="330" y="640" width="240" height="174" rx="10" fill="white" stroke="#e5e7eb" stroke-width="1.5"/>
+        <rect x="330" y="640" width="240" height="36" rx="10" fill="#374151"/>
+        <rect x="330" y="664" width="240" height="12" fill="#374151"/>
+        <text x="344" y="663" fill="white" font-size="13" font-weight="700">👥 BookingPassengers</text>
+      </g>
+      <rect x="330" y="676" width="240" height="22" fill="#f9fafb"/>
+      <text x="338" y="691" fill="#92400e" font-size="10" font-weight="700">PK</text>
+      <text x="358" y="691" fill="#374151" font-size="11" font-weight="600">Id</text>
+      <text x="460" y="691" fill="#9ca3af" font-size="10">GUID · auto</text>
+
+      <rect x="330" y="698" width="240" height="22" fill="white"/>
+      <text x="338" y="713" fill="#1e40af" font-size="10" font-weight="700">FK</text>
+      <text x="358" y="713" fill="#374151" font-size="11" font-weight="600">BookingId</text>
+      <text x="460" y="713" fill="#9ca3af" font-size="10">→ Bookings.Id</text>
+
+      <rect x="330" y="720" width="240" height="22" fill="#f9fafb"/>
+      <text x="358" y="735" fill="#374151" font-size="11">Name</text>
+      <text x="460" y="735" fill="#9ca3af" font-size="10">string(150)</text>
+
+      <rect x="330" y="742" width="240" height="22" fill="white"/>
+      <text x="358" y="757" fill="#374151" font-size="11">Age</text>
+      <text x="460" y="757" fill="#9ca3af" font-size="10">int? (optional)</text>
+
+      <rect x="330" y="764" width="240" height="22" fill="#f9fafb"/>
+      <text x="358" y="779" fill="#374151" font-size="11">SeatNo</text>
+      <text x="460" y="779" fill="#9ca3af" font-size="10">string(10) e.g."12A"</text>
+
+      <rect x="330" y="786" width="240" height="22" fill="white"/>
+      <text x="358" y="801" fill="#374151" font-size="11">RowVersion</text>
+      <text x="460" y="801" fill="#9ca3af" font-size="10">byte[] concurrency</text>
+
+      <!-- ─── PAYMENTS ─── x=630 y=640 w=240 -->
+      <g filter="url(#shadow)">
+        <rect x="630" y="640" width="240" height="174" rx="10" fill="white" stroke="#e5e7eb" stroke-width="1.5"/>
+        <rect x="630" y="640" width="240" height="36" rx="10" fill="#065f46"/>
+        <rect x="630" y="664" width="240" height="12" fill="#065f46"/>
+        <text x="652" y="663" fill="white" font-size="13" font-weight="700">💳 Payments</text>
+      </g>
+      <rect x="630" y="676" width="240" height="22" fill="#f0fdf4"/>
+      <text x="638" y="691" fill="#92400e" font-size="10" font-weight="700">PK</text>
+      <text x="658" y="691" fill="#374151" font-size="11" font-weight="600">Id</text>
+      <text x="760" y="691" fill="#9ca3af" font-size="10">GUID · auto</text>
+
+      <rect x="630" y="698" width="240" height="22" fill="white"/>
+      <text x="638" y="713" fill="#1e40af" font-size="10" font-weight="700">FK</text>
+      <text x="658" y="713" fill="#374151" font-size="11" font-weight="600">BookingId</text>
+      <text x="760" y="713" fill="#9ca3af" font-size="10">→ Bookings.Id</text>
+
+      <rect x="630" y="720" width="240" height="22" fill="#f0fdf4"/>
+      <text x="638" y="735" fill="#991b1b" font-size="10" font-weight="700">ENUM</text>
+      <text x="668" y="735" fill="#374151" font-size="11">Status</text>
+      <text x="760" y="735" fill="#9ca3af" font-size="10">Initiated|Success…</text>
+
+      <rect x="630" y="742" width="240" height="22" fill="white"/>
+      <text x="658" y="757" fill="#374151" font-size="11">Amount</text>
+      <text x="760" y="757" fill="#9ca3af" font-size="10">decimal(10,2)</text>
+
+      <rect x="630" y="764" width="240" height="22" fill="#f0fdf4"/>
+      <text x="658" y="779" fill="#374151" font-size="11">ProviderReference</text>
+      <text x="760" y="779" fill="#9ca3af" font-size="10">string(100)</text>
+
+      <rect x="630" y="786" width="240" height="22" fill="white"/>
+      <text x="658" y="801" fill="#374151" font-size="11">RowVersion</text>
+      <text x="760" y="801" fill="#9ca3af" font-size="10">byte[] concurrency</text>
+
+      <!-- ─── AUDIT_LOGS ─── x=930 y=640 w=240 -->
+      <g filter="url(#shadow)">
+        <rect x="930" y="340" width="240" height="440" rx="10" fill="white" stroke="#e5e7eb" stroke-width="1.5"/>
+        <rect x="930" y="340" width="240" height="36" rx="10" fill="#374151"/>
+        <rect x="930" y="364" width="240" height="12" fill="#374151"/>
+        <text x="948" y="363" fill="white" font-size="13" font-weight="700">📋 AuditLogs</text>
+        <text x="1080" y="363" fill="#9ca3af" font-size="10">(no FK)</text>
+      </g>
+      <rect x="930" y="376" width="240" height="22" fill="#f9fafb"/>
+      <text x="938" y="391" fill="#92400e" font-size="10" font-weight="700">PK</text>
+      <text x="958" y="391" fill="#374151" font-size="11" font-weight="600">Id</text>
+      <text x="1060" y="391" fill="#9ca3af" font-size="10">GUID · auto</text>
+
+      <rect x="930" y="398" width="240" height="22" fill="white"/>
+      <text x="938" y="413" fill="#991b1b" font-size="10" font-weight="700">ENUM</text>
+      <text x="968" y="413" fill="#374151" font-size="11">LogType</text>
+      <text x="1060" y="413" fill="#9ca3af" font-size="10">Audit | Error</text>
+
+      <rect x="930" y="420" width="240" height="22" fill="#f9fafb"/>
+      <text x="958" y="435" fill="#374151" font-size="11">Action</text>
+      <text x="1060" y="435" fill="#9ca3af" font-size="10">POST|PUT|DELETE…</text>
+
+      <rect x="930" y="442" width="240" height="22" fill="white"/>
+      <text x="958" y="457" fill="#374151" font-size="11">Description</text>
+      <text x="1060" y="457" fill="#9ca3af" font-size="10">string(500)</text>
+
+      <rect x="930" y="464" width="240" height="22" fill="#f9fafb"/>
+      <text x="958" y="479" fill="#374151" font-size="11">Detail</text>
+      <text x="1060" y="479" fill="#9ca3af" font-size="10">string(4000)? stack</text>
+
+      <rect x="930" y="486" width="240" height="22" fill="white"/>
+      <text x="938" y="501" fill="#4c1d95" font-size="10" font-weight="700">IDX</text>
+      <text x="958" y="501" fill="#374151" font-size="11">UserId</text>
+      <text x="1060" y="501" fill="#9ca3af" font-size="10">GUID? (soft ref)</text>
+
+      <rect x="930" y="508" width="240" height="22" fill="#f9fafb"/>
+      <text x="958" y="523" fill="#374151" font-size="11">Username</text>
+      <text x="1060" y="523" fill="#9ca3af" font-size="10">string(100)?</text>
+
+      <rect x="930" y="530" width="240" height="22" fill="white"/>
+      <text x="958" y="545" fill="#374151" font-size="11">UserRole</text>
+      <text x="1060" y="545" fill="#9ca3af" font-size="10">string(30)?</text>
+
+      <rect x="930" y="552" width="240" height="22" fill="#f9fafb"/>
+      <text x="958" y="567" fill="#374151" font-size="11">HttpMethod</text>
+      <text x="1060" y="567" fill="#9ca3af" font-size="10">string(10)?</text>
+
+      <rect x="930" y="574" width="240" height="22" fill="white"/>
+      <text x="958" y="589" fill="#374151" font-size="11">Endpoint</text>
+      <text x="1060" y="589" fill="#9ca3af" font-size="10">string(250)?</text>
+
+      <rect x="930" y="596" width="240" height="22" fill="#f9fafb"/>
+      <text x="958" y="611" fill="#374151" font-size="11">StatusCode</text>
+      <text x="1060" y="611" fill="#9ca3af" font-size="10">int?</text>
+
+      <rect x="930" y="618" width="240" height="22" fill="white"/>
+      <text x="958" y="633" fill="#374151" font-size="11">DurationMs</text>
+      <text x="1060" y="633" fill="#9ca3af" font-size="10">long?</text>
+
+      <rect x="930" y="640" width="240" height="22" fill="#f9fafb"/>
+      <text x="958" y="655" fill="#374151" font-size="11">IsSuccess</text>
+      <text x="1060" y="655" fill="#9ca3af" font-size="10">bool</text>
+
+      <rect x="930" y="662" width="240" height="22" fill="white"/>
+      <text x="938" y="677" fill="#4c1d95" font-size="10" font-weight="700">IDX</text>
+      <text x="958" y="677" fill="#374151" font-size="11">CreatedAtUtc</text>
+      <text x="1060" y="677" fill="#9ca3af" font-size="10">DateTime UTC</text>
+
+      <rect x="930" y="684" width="240" height="22" fill="#f9fafb"/>
+      <text x="938" y="699" fill="#4c1d95" font-size="10" font-weight="700">IDX</text>
+      <text x="958" y="699" fill="#374151" font-size="11">LogType (indexed)</text>
+      <text x="1060" y="699" fill="#9ca3af" font-size="10">fast filter</text>
+
+      <rect x="930" y="706" width="240" height="22" fill="white"/>
+      <text x="958" y="721" fill="#374151" font-size="11">EntityType</text>
+      <text x="1060" y="721" fill="#9ca3af" font-size="10">Bus|Route|Booking…</text>
+
+      <rect x="930" y="728" width="240" height="44" fill="#f9fafb"/>
+      <text x="938" y="743" fill="#6b7280" font-size="10" font-style="italic">No FK constraint — stores</text>
+      <text x="938" y="758" fill="#6b7280" font-size="10" font-style="italic">snapshot of who did what</text>
+
+      <!-- ══════════════════════════════
+           RELATIONSHIP LINES
+      ══════════════════════════════ -->
+
+      <!-- Users 1 → 1 BusOperators (one-to-one) -->
+      <line x1="270" y1="103" x2="330" y2="103" stroke="#1d3461" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arr-blue)"/>
+      <circle cx="270" cy="103" r="4" fill="#1d3461"/>
+
+      <!-- Users 1 → N Bookings (one-to-many, RESTRICT) -->
+      <line x1="150" y1="248" x2="150" y2="700" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="150" y1="700" x2="30" y2="700" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr-green)"/>
+
+      <!-- BusOperators 1 → N Buses -->
+      <line x1="570" y1="103" x2="630" y2="103" stroke="#c62828" stroke-width="2" marker-end="url(#arr-red)"/>
+
+      <!-- BusOperators 1 → N BusRoutes -->
+      <line x1="450" y1="204" x2="450" y2="310" stroke="#c62828" stroke-width="1.5"/>
+      <line x1="450" y1="310" x2="150" y2="310" stroke="#c62828" stroke-width="1.5"/>
+      <line x1="150" y1="310" x2="150" y2="340" stroke="#c62828" stroke-width="1.5" marker-end="url(#arr-red)"/>
+
+      <!-- BusRoutes 1 → N RouteStops (CASCADE) -->
+      <line x1="270" y1="413" x2="330" y2="413" stroke="#c62828" stroke-width="2" marker-end="url(#arr-red)"/>
+
+      <!-- Stops 1 → N RouteStops (RESTRICT) -->
+      <line x1="960" y1="125" x2="960" y2="300" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="960" y1="300" x2="570" y2="300" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="570" y1="300" x2="570" y2="435" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="570" y1="435" x2="570" y2="435" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr-green)"/>
+
+      <!-- Buses 1 → N BusSchedules -->
+      <line x1="750" y1="248" x2="750" y2="340" stroke="#c62828" stroke-width="2" marker-end="url(#arr-red)"/>
+
+      <!-- BusRoutes → BusSchedules (RESTRICT) -->
+      <line x1="200" y1="420" x2="200" y2="600" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="200" y1="600" x2="690" y2="600" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="690" y1="600" x2="690" y2="558" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr-green)"/>
+
+      <!-- BusSchedules 1 → N Bookings (CASCADE) -->
+      <line x1="690" y1="558" x2="690" y2="620" stroke="#c62828" stroke-width="2"/>
+      <line x1="690" y1="620" x2="270" y2="620" stroke="#c62828" stroke-width="2"/>
+      <line x1="270" y1="620" x2="270" y2="730" stroke="#c62828" stroke-width="2" marker-end="url(#arr-red)"/>
+
+      <!-- Bookings 1 → N BookingPassengers (CASCADE) -->
+      <line x1="270" y1="713" x2="330" y2="713" stroke="#c62828" stroke-width="2" marker-end="url(#arr-red)"/>
+
+      <!-- Bookings 1 → 1 Payment (CASCADE, one-to-one) -->
+      <line x1="270" y1="758" x2="590" y2="758" stroke="#1d3461" stroke-width="2" stroke-dasharray="5,3"/>
+      <line x1="590" y1="758" x2="630" y2="720" stroke="#1d3461" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arr-blue)"/>
+      <circle cx="270" cy="758" r="4" fill="#1d3461"/>
+
+      <!-- Labels on key relationships -->
+      <text x="295" y="98" fill="#1d3461" font-size="10" font-weight="600">1:1</text>
+      <text x="592" y="99" fill="#c62828" font-size="10" font-weight="600">1:N</text>
+      <text x="292" y="409" fill="#c62828" font-size="10" font-weight="600">1:N</text>
+      <text x="756" y="296" fill="#c62828" font-size="10" font-weight="600">1:N</text>
+      <text x="700" y="594" fill="#c62828" font-size="10" font-weight="600">1:N</text>
+      <text x="292" y="709" fill="#c62828" font-size="10" font-weight="600">1:N</text>
+      <text x="435" y="753" fill="#1d3461" font-size="10" font-weight="600">1:1</text>
+
+    </svg>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB 2: TABLE DETAILS ═══════════════════ -->
+<div id="tab-tables" class="section">
+  <p class="section-title">All 11 Tables — Field-by-Field Explanation</p>
+  <p class="section-sub">Every field explained with its type, constraint, and purpose in SwiftRoute.</p>
+  <div class="cards-grid">
+
+    <!-- USERS -->
+    <div class="card">
+      <div class="card-head" style="background:#c62828">👤 Users</div>
+      <div class="card-body">
+        <div class="field-row"><span class="badge pk">PK</span><span class="field-name">Id</span><span class="field-desc">GUID, auto-generated. Uniquely identifies each user.</span></div>
+        <div class="field-row"><span class="badge uq">UQ</span><span class="field-name">Username</span><span class="field-desc">string(100). Must be unique. Used for login.</span></div>
+        <div class="field-row"><span class="badge uq">UQ</span><span class="field-name">Email</span><span class="field-desc">string(256). Must be unique. Prevents duplicate accounts.</span></div>
+        <div class="field-row"><span class="badge nn">NN</span><span class="field-name">FullName</span><span class="field-desc">Display name shown in UI and auto-filled in booking.</span></div>
+        <div class="field-row"><span class="badge en">ENUM</span><span class="field-name">Role</span><span class="field-desc">Admin | Operator | Customer | PendingOperator</span></div>
+        <div class="field-row"><span class="badge nn">NN</span><span class="field-name">PasswordHash</span><span class="field-desc">PBKDF2 salted hash. Never store plain password.</span></div>
+        <div class="field-row"><span class="badge idx">IDX</span><span class="field-name">CreatedAtUtc</span><span class="field-desc">When the user registered. Stored in UTC.</span></div>
+        <div class="field-row"><span class="badge nn">-</span><span class="field-name">RowVersion</span><span class="field-desc">byte[]. Concurrency token. Prevents simultaneous updates.</span></div>
+      </div>
+    </div>
+
+    <!-- BUS_OPERATORS -->
+    <div class="card">
+      <div class="card-head" style="background:#7b1616">🏢 BusOperators</div>
+      <div class="card-body">
+        <div class="field-row"><span class="badge pk">PK</span><span class="field-name">Id</span><span class="field-desc">GUID. Unique operator profile ID.</span></div>
+        <div class="field-row"><span class="badge fk">FK</span><span class="field-name">UserId</span><span class="field-desc">→ Users.Id. Links operator profile to its user account. One-to-one.</span></div>
+        <div class="field-row"><span class="badge nn">NN</span><span class="field-name">CompanyName</span><span class="field-desc">string(200). Set by admin on approval. e.g., "Sharma Travels".</span></div>
+        <div class="field-row"><span class="badge nn">-</span><span class="field-name">SupportPhone</span><span class="field-desc">string(30). Customer support contact. Optional.</span></div>
+        <div class="field-row"><span class="badge nn">-</span><span class="field-name">RowVersion</span><span class="field-desc">Concurrency token.</span></div>
+      </div>
+    </div>
+
+    <!-- BUSES -->
+    <div class="card">
+      <div class="card-head" style="background:#1d3461">🚌 Buses</div>
+      <div class="card-body">
+        <div class="field-row"><span class="badge pk">PK</span><span class="field-name">Id</span><span class="field-desc">GUID. Unique bus identifier.</span></div>
+        <div class="field-row"><span class="badge fk">FK</span><span class="field-name">OperatorId</span><span class="field-desc">→ BusOperators.Id. CASCADE. Bus belongs to one operator. Delete operator → all buses deleted.</span></div>
+        <div class="field-row"><span class="badge uq">UQ</span><span class="field-name">Code</span><span class="field-desc">Unique per operator. e.g., "BUS-01". Composite index on (OperatorId, Code).</span></div>
+        <div class="field-row"><span class="badge nn">NN</span><span class="field-name">RegistrationNumber</span><span class="field-desc">Legal vehicle registration. e.g., "TN01AB1234".</span></div>
+        <div class="field-row"><span class="badge en">ENUM</span><span class="field-name">BusType</span><span class="field-desc">Seater=1, SemiSleeper=2, Sleeper=3, AC=4, NonAC=5</span></div>
+        <div class="field-row"><span class="badge en">ENUM</span><span class="field-name">Status</span><span class="field-desc">Available=1, UnderRepair=2, NotAvailable=3. Booking only allowed if Available.</span></div>
+        <div class="field-row"><span class="badge nn">NN</span><span class="field-name">TotalSeats</span><span class="field-desc">int. Default 40. Used to generate seat numbers 1..N.</span></div>
+      </div>
+    </div>
+
+    <!-- STOPS -->
+    <div class="card">
+      <div class="card-head" style="background:#065f46">📍 Stops</div>
+      <div class="card-body">
+        <div class="field-row"><span class="badge pk">PK</span><span class="field-name">Id</span><span class="field-desc">GUID. Unique stop identifier.</span></div>
+        <div class="field-row"><span class="badge uq">UQ</span><span class="field-name">City</span><span class="field-desc">City name. e.g., "Chennai". Part of composite unique index with Name.</span></div>
+        <div class="field-row"><span class="badge uq">UQ</span><span class="field-name">Name</span><span class="field-desc">Stop name. e.g., "Koyambedu Bus Stand". Unique constraint: (City, Name) together.</span></div>
+        <div class="field-row"><span class="badge nn">-</span><span class="field-name">Latitude</span><span class="field-desc">double? Optional GPS coordinate for map features.</span></div>
+        <div class="field-row"><span class="badge nn">-</span><span class="field-name">Longitude</span><span class="field-desc">double? Optional GPS coordinate for map features.</span></div>
+      </div>
+    </div>
+
+    <!-- BUS_ROUTES -->
+    <div class="card">
+      <div class="card-head" style="background:#c9882a">🗺️ BusRoutes</div>
+      <div class="card-body">
+        <div class="field-row"><span class="badge pk">PK</span><span class="field-name">Id</span><span class="field-desc">GUID. Unique route identifier.</span></div>
+        <div class="field-row"><span class="badge fk">FK</span><span class="field-name">OperatorId</span><span class="field-desc">→ BusOperators.Id. CASCADE. Route belongs to operator.</span></div>
+        <div class="field-row"><span class="badge uq">UQ</span><span class="field-name">RouteCode</span><span class="field-desc">Unique per operator. e.g., "CHN-BLR-01". Composite index on (OperatorId, RouteCode).</span></div>
+      </div>
+    </div>
+
+    <!-- ROUTE_STOPS -->
+    <div class="card">
+      <div class="card-head" style="background:#4c1d95">🔀 RouteStops (Junction Table)</div>
+      <div class="card-body">
+        <p style="font-size:12px;color:#6b7280;margin-bottom:10px">Links Routes ↔ Stops in order. A route has many stops, a stop can appear in many routes.</p>
+        <div class="field-row"><span class="badge pk">PK</span><span class="field-name">Id</span><span class="field-desc">GUID. Unique junction record.</span></div>
+        <div class="field-row"><span class="badge fk">FK</span><span class="field-name">RouteId</span><span class="field-desc">→ BusRoutes.Id. CASCADE. Delete route → all its stops deleted.</span></div>
+        <div class="field-row"><span class="badge fk">FK</span><span class="field-name">StopId</span><span class="field-desc">→ Stops.Id. RESTRICT. Cannot delete a stop that's in use.</span></div>
+        <div class="field-row"><span class="badge uq">UQ</span><span class="field-name">Order</span><span class="field-desc">Sequence position 1..N. Unique per route. Determines stop ordering.</span></div>
+        <div class="field-row"><span class="badge nn">-</span><span class="field-name">ArrivalOffsetMin</span><span class="field-desc">int? Minutes from departure this stop is reached.</span></div>
+        <div class="field-row"><span class="badge nn">-</span><span class="field-name">DepartureOffsetMin</span><span class="field-desc">int? Minutes from departure this stop departs.</span></div>
+      </div>
+    </div>
+
+    <!-- BUS_SCHEDULES -->
+    <div class="card">
+      <div class="card-head" style="background:#c62828">🗓️ BusSchedules</div>
+      <div class="card-body">
+        <div class="field-row"><span class="badge pk">PK</span><span class="field-name">Id</span><span class="field-desc">GUID. Unique schedule identifier.</span></div>
+        <div class="field-row"><span class="badge fk">FK</span><span class="field-name">BusId</span><span class="field-desc">→ Buses.Id. CASCADE. Delete bus → schedules deleted.</span></div>
+        <div class="field-row"><span class="badge fk">FK</span><span class="field-name">RouteId</span><span class="field-desc">→ BusRoutes.Id. RESTRICT. Cannot delete route with active schedules.</span></div>
+        <div class="field-row"><span class="badge uq">UQ</span><span class="field-name">DepartureUtc</span><span class="field-desc">DateTime UTC. Unique per bus — one bus can't have two schedules at same time. Composite index (BusId, DepartureUtc).</span></div>
+        <div class="field-row"><span class="badge nn">NN</span><span class="field-name">BasePrice</span><span class="field-desc">decimal(10,2). Price per seat. Max value 99,999,999.99.</span></div>
+        <div class="field-row"><span class="badge nn">NN</span><span class="field-name">IsCancelledByOperator</span><span class="field-desc">bool. Set to true when operator cancels. Blocks new bookings.</span></div>
+        <div class="field-row"><span class="badge nn">-</span><span class="field-name">CancelReason</span><span class="field-desc">string? Reason shown to customers when cancelled.</span></div>
+      </div>
+    </div>
+
+    <!-- BOOKINGS -->
+    <div class="card">
+      <div class="card-head" style="background:#1d3461">🎫 Bookings</div>
+      <div class="card-body">
+        <div class="field-row"><span class="badge pk">PK</span><span class="field-name">Id</span><span class="field-desc">GUID. Unique booking identifier. Shown as reference #.</span></div>
+        <div class="field-row"><span class="badge fk">FK</span><span class="field-name">UserId</span><span class="field-desc">→ Users.Id. RESTRICT. Cannot delete user with bookings.</span></div>
+        <div class="field-row"><span class="badge fk">FK</span><span class="field-name">ScheduleId</span><span class="field-desc">→ BusSchedules.Id. CASCADE. Delete schedule → bookings deleted.</span></div>
+        <div class="field-row"><span class="badge en">ENUM</span><span class="field-name">Status</span><span class="field-desc">Pending=1, Confirmed=2, Cancelled=3, Refunded=4, OperatorCancelled=5</span></div>
+        <div class="field-row"><span class="badge nn">NN</span><span class="field-name">TotalAmount</span><span class="field-desc">decimal(10,2). BasePrice × number of passengers.</span></div>
+      </div>
+    </div>
+
+    <!-- BOOKING_PASSENGERS -->
+    <div class="card">
+      <div class="card-head" style="background:#374151">👥 BookingPassengers</div>
+      <div class="card-body">
+        <div class="field-row"><span class="badge pk">PK</span><span class="field-name">Id</span><span class="field-desc">GUID. Unique passenger record.</span></div>
+        <div class="field-row"><span class="badge fk">FK</span><span class="field-name">BookingId</span><span class="field-desc">→ Bookings.Id. CASCADE. Delete booking → passengers deleted.</span></div>
+        <div class="field-row"><span class="badge nn">NN</span><span class="field-name">Name</span><span class="field-desc">string(150). Full name of the traveller.</span></div>
+        <div class="field-row"><span class="badge nn">-</span><span class="field-name">Age</span><span class="field-desc">int? Optional. Used for age-based pricing if needed.</span></div>
+        <div class="field-row"><span class="badge nn">NN</span><span class="field-name">SeatNo</span><span class="field-desc">string(10). e.g., "12A". Locked during booking transaction. Prevents double-booking.</span></div>
+      </div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div class="card">
+      <div class="card-head" style="background:#065f46">💳 Payments</div>
+      <div class="card-body">
+        <div class="field-row"><span class="badge pk">PK</span><span class="field-name">Id</span><span class="field-desc">GUID. Unique payment record.</span></div>
+        <div class="field-row"><span class="badge fk">FK</span><span class="field-name">BookingId</span><span class="field-desc">→ Bookings.Id. CASCADE. One-to-one. One booking = one payment.</span></div>
+        <div class="field-row"><span class="badge en">ENUM</span><span class="field-name">Status</span><span class="field-desc">Initiated=1, Success=2, Failed=3, Refunded=4</span></div>
+        <div class="field-row"><span class="badge nn">NN</span><span class="field-name">Amount</span><span class="field-desc">decimal(10,2). Amount actually paid.</span></div>
+        <div class="field-row"><span class="badge nn">NN</span><span class="field-name">ProviderReference</span><span class="field-desc">string(100). Payment gateway reference. e.g., "PAY-1234567890".</span></div>
+      </div>
+    </div>
+
+    <!-- AUDIT_LOGS -->
+    <div class="card">
+      <div class="card-head" style="background:#374151">📋 AuditLogs (standalone)</div>
+      <div class="card-body">
+        <p style="font-size:12px;color:#6b7280;margin-bottom:10px">No FK constraints. Stores a snapshot of what happened. Even if the user is deleted, the audit trail remains.</p>
+        <div class="field-row"><span class="badge pk">PK</span><span class="field-name">Id</span><span class="field-desc">GUID. Unique log entry.</span></div>
+        <div class="field-row"><span class="badge en">ENUM</span><span class="field-name">LogType</span><span class="field-desc">"Audit" (intentional writes) | "Error" (exceptions)</span></div>
+        <div class="field-row"><span class="badge idx">IDX</span><span class="field-name">UserId</span><span class="field-desc">GUID? Soft reference to Users. No FK so deleting user keeps logs.</span></div>
+        <div class="field-row"><span class="badge idx">IDX</span><span class="field-name">CreatedAtUtc</span><span class="field-desc">Indexed for fast date-range filtering.</span></div>
+        <div class="field-row"><span class="badge idx">IDX</span><span class="field-name">LogType</span><span class="field-desc">Indexed for fast Audit vs Error filtering.</span></div>
+        <div class="field-row"><span class="badge nn">-</span><span class="field-name">Detail</span><span class="field-desc">string(4000)? Full stack trace for Error logs.</span></div>
+        <div class="field-row"><span class="badge nn">-</span><span class="field-name">DurationMs</span><span class="field-desc">long? Milliseconds — performance monitoring.</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB 3: RELATIONSHIPS ═══════════════════ -->
+<div id="tab-relationships" class="section">
+  <p class="section-title">All 10 Relationships Explained</p>
+  <p class="section-sub">What each FK means, the cardinality, and what happens when you delete the parent.</p>
+  <table class="rel-table">
+    <thead>
+      <tr><th>From (child)</th><th>To (parent)</th><th>Type</th><th>Delete behaviour</th><th>What it means in SwiftRoute</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="rel-from">BusOperators.UserId</span></td>
+        <td><span class="rel-to">Users.Id</span></td>
+        <td><span class="rel-type">1 : 1</span></td>
+        <td><span class="del-r">RESTRICT</span></td>
+        <td>Every operator has exactly one user account. Created by admin when approving a PendingOperator. Cannot delete the user while this profile exists.</td>
+      </tr>
+      <tr>
+        <td><span class="rel-from">Buses.OperatorId</span></td>
+        <td><span class="rel-to">BusOperators.Id</span></td>
+        <td><span class="rel-type">N : 1</span></td>
+        <td><span class="del-c">CASCADE</span></td>
+        <td>Each bus belongs to one operator. If the operator is removed from the system, all their buses are deleted automatically.</td>
+      </tr>
+      <tr>
+        <td><span class="rel-from">BusRoutes.OperatorId</span></td>
+        <td><span class="rel-to">BusOperators.Id</span></td>
+        <td><span class="rel-type">N : 1</span></td>
+        <td><span class="del-c">CASCADE</span></td>
+        <td>Each route belongs to one operator. Operator manages their own routes. Deleting operator removes all routes.</td>
+      </tr>
+      <tr>
+        <td><span class="rel-from">RouteStops.RouteId</span></td>
+        <td><span class="rel-to">BusRoutes.Id</span></td>
+        <td><span class="rel-type">N : 1</span></td>
+        <td><span class="del-c">CASCADE</span></td>
+        <td>A route has many ordered stops. Deleting the route removes all its stop assignments.</td>
+      </tr>
+      <tr>
+        <td><span class="rel-from">RouteStops.StopId</span></td>
+        <td><span class="rel-to">Stops.Id</span></td>
+        <td><span class="rel-type">N : 1</span></td>
+        <td><span class="del-r">RESTRICT</span></td>
+        <td>A stop can appear in many routes. Admin CANNOT delete "Chennai Central" if any route still uses it. Prevents accidental data loss.</td>
+      </tr>
+      <tr>
+        <td><span class="rel-from">BusSchedules.BusId</span></td>
+        <td><span class="rel-to">Buses.Id</span></td>
+        <td><span class="rel-type">N : 1</span></td>
+        <td><span class="del-c">CASCADE</span></td>
+        <td>A bus has many departure schedules. Removing a bus deletes all its scheduled trips. Also has unique constraint: one bus cannot have two schedules at same departure time.</td>
+      </tr>
+      <tr>
+        <td><span class="rel-from">BusSchedules.RouteId</span></td>
+        <td><span class="rel-to">BusRoutes.Id</span></td>
+        <td><span class="rel-type">N : 1</span></td>
+        <td><span class="del-r">RESTRICT</span></td>
+        <td>A schedule uses one route. Cannot delete a route that has live schedules. Operator must cancel schedules first.</td>
+      </tr>
+      <tr>
+        <td><span class="rel-from">Bookings.UserId</span></td>
+        <td><span class="rel-to">Users.Id</span></td>
+        <td><span class="rel-type">N : 1</span></td>
+        <td><span class="del-r">RESTRICT</span></td>
+        <td>Each booking is made by one customer. Cannot delete a user account that has booking history. Preserves audit trail.</td>
+      </tr>
+      <tr>
+        <td><span class="rel-from">Bookings.ScheduleId</span></td>
+        <td><span class="rel-to">BusSchedules.Id</span></td>
+        <td><span class="rel-type">N : 1</span></td>
+        <td><span class="del-c">CASCADE</span></td>
+        <td>Each booking is for one schedule. If a schedule is fully deleted, its bookings are removed. In practice, operator uses IsCancelledByOperator flag instead of deleting.</td>
+      </tr>
+      <tr>
+        <td><span class="rel-from">BookingPassengers.BookingId</span></td>
+        <td><span class="rel-to">Bookings.Id</span></td>
+        <td><span class="rel-type">N : 1</span></td>
+        <td><span class="del-c">CASCADE</span></td>
+        <td>Each booking has one or more passengers. SeatNo per passenger is locked during a Serializable DB transaction to prevent two people booking the same seat.</td>
+      </tr>
+      <tr>
+        <td><span class="rel-from">Payments.BookingId</span></td>
+        <td><span class="rel-to">Bookings.Id</span></td>
+        <td><span class="rel-type">1 : 1</span></td>
+        <td><span class="del-c">CASCADE</span></td>
+        <td>Each booking has exactly one payment record. Created when booking is made (Initiated), updated to Success when customer pays. HasForeignKey is on Payment side.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════ TAB 4: GLOSSARY ═══════════════════ -->
+<div id="tab-glossary" class="section">
+  <p class="section-title">Database Terms Glossary</p>
+  <p class="section-sub">Every term used in the ER diagram explained simply.</p>
+  <div class="glossary">
+    <div class="gitem"><div class="gterm" style="color:#92400e">🔑 Primary Key (PK)</div><div class="gdesc">A column that uniquely identifies each row. No two rows can have the same value. Cannot be NULL.</div><div class="gex">In SwiftRoute: every table has Id (GUID) as PK. EF Core generates a new GUID automatically when you create a record.</div></div>
+    <div class="gitem"><div class="gterm" style="color:#1e40af">🔗 Foreign Key (FK)</div><div class="gdesc">A column in one table that points to the PK of another table. Creates a relationship between tables.</div><div class="gex">Bookings.UserId → Users.Id means every booking must reference a valid user. You cannot create a booking for a non-existent user.</div></div>
+    <div class="gitem"><div class="gterm" style="color:#065f46">✅ Unique Constraint (UQ)</div><div class="gdesc">Ensures no two rows have the same value in that column (or combination of columns). Unlike PK, can be any column.</div><div class="gex">Users.Username is UQ — two people can't register as "john123". Buses.(OperatorId, Code) is UQ — same operator can't have two buses with code "BUS-01".</div></div>
+    <div class="gitem"><div class="gterm" style="color:#4c1d95">📊 Index (IDX)</div><div class="gdesc">A data structure that makes searching faster. Without index, DB scans every row. With index, it jumps directly to matching rows.</div><div class="gex">AuditLogs.CreatedAtUtc is indexed so filtering by date range (last 7 days) is fast even with millions of log entries.</div></div>
+    <div class="gitem"><div class="gterm" style="color:#991b1b">🎭 Enum</div><div class="gdesc">A fixed set of named integer values. Stored as int in DB, used as named value in code.</div><div class="gex">BookingStatus.Pending=1, Confirmed=2, Cancelled=3. DB stores 1, but code says booking.Status == BookingStatus.Confirmed — readable and type-safe.</div></div>
+    <div class="gitem"><div class="gterm" style="color:#dc2626">🌊 CASCADE Delete</div><div class="gdesc">When you delete the parent row, all child rows that reference it are automatically deleted too.</div><div class="gex">Delete a Bus → its BusSchedules are deleted → their Bookings are deleted → Passengers and Payments deleted. One delete cleans the whole chain.</div></div>
+    <div class="gitem"><div class="gterm" style="color:#d97706">🛑 RESTRICT Delete</div><div class="gdesc">Prevents deleting a parent row if any child rows reference it. You must delete or update children first.</div><div class="gex">Cannot delete a Stop if any RouteStop references it. Admin must first remove that stop from all routes before deleting it.</div></div>
+    <div class="gitem"><div class="gterm">1 : 1 (One-to-One)</div><div class="gdesc">Each row in Table A has at most one matching row in Table B, and vice versa.</div><div class="gex">Users ↔ BusOperators: One user has one operator profile. One operator profile belongs to one user. Booking ↔ Payment: one booking = one payment.</div></div>
+    <div class="gitem"><div class="gterm">1 : N (One-to-Many)</div><div class="gdesc">One row in Table A can have many matching rows in Table B. Each row in B has exactly one match in A.</div><div class="gex">One BusOperator has many Buses. One Booking has many BookingPassengers (one per seat selected).</div></div>
+    <div class="gitem"><div class="gterm">M : N (Many-to-Many)</div><div class="gdesc">Many rows in A can relate to many rows in B. Implemented via a junction/bridge table.</div><div class="gex">Routes ↔ Stops is M:N: one route has many stops, one stop appears in many routes. RouteStops is the junction table with extra data (Order, offsets).</div></div>
+    <div class="gitem"><div class="gterm">🕐 RowVersion</div><div class="gdesc">A byte[] column automatically updated by the DB on every save. EF Core checks this when saving — if it changed since you read it, another user modified the row first and EF throws an exception.</div><div class="gex">Prevents two operators updating the same bus simultaneously. The second save is rejected with DbUpdateConcurrencyException.</div></div>
+    <div class="gitem"><div class="gterm">🌐 GUID</div><div class="gdesc">Globally Unique Identifier — a 128-bit value that is unique across the entire world. Generated client-side or server-side.</div><div class="gex">All PKs in SwiftRoute use GUIDs. Safer than auto-increment int: attackers can't guess /api/bookings/2 or /api/bookings/3 to enumerate your data.</div></div>
+    <div class="gitem"><div class="gterm">🕰️ UTC DateTime</div><div class="gdesc">All timestamps stored in UTC (Coordinated Universal Time) — timezone neutral. Converted to local time only in the UI.</div><div class="gex">DepartureUtc in BusSchedules is stored as UTC. Angular formats it with toLocaleString('en-IN') to show it in Indian Standard Time to the user.</div></div>
+    <div class="gitem"><div class="gterm">🔒 Serializable Transaction</div><div class="gdesc">The strictest transaction isolation level. Locks all rows involved until the transaction completes. No other transaction can read or write those rows.</div><div class="gex">BookingService uses Serializable transaction when checking and reserving seats. Two users cannot book Seat 5A at the same time — one will fail.</div></div>
+    <div class="gitem"><div class="gterm">📦 Soft Delete</div><div class="gdesc">Instead of physically deleting a row, set IsDeleted = true. Row stays in DB but is filtered out of normal queries.</div><div class="gex">BaseEntity has IsDeleted field. Not fully implemented in v1 but the foundation is there for future use.</div></div>
+  </div>
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
